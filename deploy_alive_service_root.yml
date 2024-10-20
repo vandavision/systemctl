@@ -1,68 +1,31 @@
 ---
-- name: Deploy Alive Service from GitHub
+- name: Deploy Python Service
   hosts: localhost
-  become: yes
-  vars:
-    git_repo: "git@github.com:vandavision/systemctl.git"
-    repo_dest: "/tmp/alive_service"
-    script_path: "/opt/alive_script.py"
-    service_path: "/etc/systemd/system/alive_service.service"
-    ssh_key_path: "/root/.ssh/id_rsa"
-    user: "root"
+  become: true
 
   tasks:
-    - name: Ensure SSH key has correct permissions
-      file:
-        path: "{{ ssh_key_path }}"
-        mode: '0600'
-
-    - name: Add GitHub to known hosts
-      known_hosts:
-        name: github.com
-        key: "{{ lookup('pipe', 'ssh-keyscan -t rsa github.com') }}"
-        path: "/root/.ssh/known_hosts"
-
-    - name: Clone Git repository
+    - name: Clone the repository
       git:
-        repo: "{{ git_repo }}"
-        dest: "{{ repo_dest }}"
-        version: main
-        key_file: "{{ ssh_key_path }}"
-        accept_hostkey: yes
+        repo: 'git@github.com:vandavision/systemctl.git'
+        dest: /tmp/systemctl
+        version: master
 
-    - name: Copy Python script to destination
+    - name: Copy Python script to /usr/local/bin
       copy:
-        src: "{{ repo_dest }}/alive_script.py"
-        dest: "{{ script_path }}"
-        mode: '0644'
-        owner: "{{ user }}"
-        group: "{{ user }}"
+        src: /tmp/systemctl/script.py
+        dest: /usr/local/bin/script.py
+        mode: 0755
 
-    - name: Create service file
-      template:
-        src: "{{ repo_dest }}/alive_service.service.j2"
-        dest: "{{ service_path }}"
-        mode: '0644'
+    - name: Copy service file
+      copy:
+        src: /tmp/systemctl/my_python_service.service
+        dest: /etc/systemd/system/my_python_service.service
 
     - name: Reload systemd
-      systemd:
-        daemon_reload: yes
+      command: systemctl daemon-reload
 
-    - name: Enable alive service
+    - name: Enable and start the service
       systemd:
-        name: alive_service
+        name: my_python_service
         enabled: yes
-
-    - name: Start alive service
-      systemd:
-        name: alive_service
         state: started
-
-    - name: Check service status
-      systemd:
-        name: alive_service
-      register: service_status
-
-    - name: Display service status
-      debug:
-        var: service_status.status
