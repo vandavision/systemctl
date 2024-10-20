@@ -43,9 +43,6 @@
         src: "{{ repo_dest }}/alive_service.service.j2"
         dest: "{{ service_path }}"
         mode: '0644'
-      vars:
-        script_path: "{{ script_path }}"
-        user: "{{ user }}"
 
     - name: Reload systemd
       systemd:
