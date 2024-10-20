@@ -1,0 +1,36 @@
+---
+- name: Deploy Python Script as Systemd Service
+  hosts: localhost
+  become: yes
+
+  tasks:
+    - name: Clone the Git repository
+      git:
+        repo: 'git@github.com:vandavision/systemctl.git'
+        dest: /opt/systemctl
+        version: main
+
+    - name: Copy the service file to systemd folder
+      copy:
+        src: /opt/systemctl/my_python_script.service
+        dest: /etc/systemd/system/my_python_script.service
+
+    - name: Reload systemd to pick up the new service
+      command: systemctl daemon-reload
+
+    - name: Enable the service
+      systemd:
+        name: my_python_script
+        enabled: yes
+
+    - name: Start the service
+      systemd:
+        name: my_python_script
+        state: started
+
+    - name: Check status of the service
+      command: systemctl status my_python_script
+      register: service_status
+
+    - debug:
+        var: service_status.stdout
