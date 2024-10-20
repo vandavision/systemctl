@@ -1,0 +1,51 @@
+---
+- name: Deploy I'm Alive Service
+  hosts: localhost
+  become: yes
+  vars:
+    git_repo: "https://github.com/vandavision/systemctl.git"
+    git_version: "main"
+    service_name: "im_alive"
+
+  tasks:
+    - name: Ensure git is installed
+      apt:
+        name: git
+        state: present
+
+    - name: Clone the git repository
+      git:
+        repo: "{{ git_repo }}"
+        version: "{{ git_version }}"
+        dest: "/tmp/im_alive_repo"
+
+    - name: Copy Python script to /opt
+      copy:
+        src: "/tmp/im_alive_repo/im_alive.py"
+        dest: "/opt/im_alive.py"
+        mode: '0755'
+
+    - name: Copy service file to systemd
+      copy:
+        src: "/tmp/im_alive_repo/im_alive.service"
+        dest: "/etc/systemd/system/im_alive.service"
+        mode: '0644'
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start the service
+      systemd:
+        name: "{{ service_name }}"
+        enabled: yes
+        state: started
+
+    - name: Check service status
+      command: systemctl status {{ service_name }}
+      register: service_status
+      changed_when: false
+
+    - name: Display service status
+      debug:
+        var: service_status.stdout_lines
